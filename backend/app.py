@@ -9,6 +9,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+
 def get_db_connection():
     return pymysql.connect(
         host=os.getenv("DB_HOST"),
@@ -19,21 +20,27 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
+
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({"message": "FixBoard API is running"})
+
 
 @app.route("/issues", methods=["GET"])
 def get_issues():
     try:
         connection = get_db_connection()
+
         with connection.cursor() as cursor:
             cursor.execute("SELECT * FROM issues ORDER BY created_at DESC")
             issues = cursor.fetchall()
+
         connection.close()
         return jsonify(issues), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/issues", methods=["POST"])
 def create_issue():
@@ -41,19 +48,20 @@ def create_issue():
         data = request.get_json()
 
         title = data.get("title")
-        description = data.get("description")
+        desp = data.get("desp")
         category = data.get("category")
 
-        if not title or not description or not category:
+        if not title or not desp or not category:
             return jsonify({"error": "Title, description, and category are required"}), 400
 
         connection = get_db_connection()
+
         with connection.cursor() as cursor:
             sql = """
-            INSERT INTO issues (title, description, category)
+            INSERT INTO issues (title, desp, category)
             VALUES (%s, %s, %s)
             """
-            cursor.execute(sql, (title, description, category))
+            cursor.execute(sql, (title, desp, category))
             connection.commit()
 
         connection.close()
@@ -61,6 +69,7 @@ def create_issue():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/issues/<int:issue_id>", methods=["PUT"])
 def update_issue_status(issue_id):
@@ -72,6 +81,7 @@ def update_issue_status(issue_id):
             return jsonify({"error": "Status is required"}), 400
 
         connection = get_db_connection()
+
         with connection.cursor() as cursor:
             sql = "UPDATE issues SET status = %s WHERE id = %s"
             cursor.execute(sql, (status, issue_id))
@@ -83,10 +93,12 @@ def update_issue_status(issue_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/issues/<int:issue_id>", methods=["DELETE"])
 def delete_issue(issue_id):
     try:
         connection = get_db_connection()
+
         with connection.cursor() as cursor:
             sql = "DELETE FROM issues WHERE id = %s"
             cursor.execute(sql, (issue_id,))
@@ -97,6 +109,7 @@ def delete_issue(issue_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
